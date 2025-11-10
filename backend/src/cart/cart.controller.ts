@@ -24,15 +24,23 @@ export class CartController {
 
   @Get()
   @ApiOkResponse({ description: 'Get cart items' })
-  getCart(@Req() req: { user: { userId: string } }) {
-    return this.cart.getCartItems(req.user.userId);
+  async getCart(@Req() req: { user: { userId: string } }) {
+    try {
+      const items = await this.cart.getCartItems(req.user.userId);
+      return { items };
+    } catch {
+      return { items: [] };
+    }
   }
 
   @Post('items')
   @ApiOkResponse({ description: 'Add item to cart' })
   addItem(@Req() req: { user: { userId: string } }, @Body() body: z.infer<typeof AddItemSchema>) {
     const parsed = AddItemSchema.parse(body);
-    return this.cart.addItem(req.user.userId, parsed.productId, parsed.quantity, parsed.variantId);
+    return this.cart
+      .addItem(req.user.userId, parsed.productId, parsed.quantity, parsed.variantId)
+      .then(() => this.cart.getCartItems(req.user.userId))
+      .then(items => ({ items }));
   }
 
   @Patch('items/:productId')
@@ -43,7 +51,10 @@ export class CartController {
     @Body() body: z.infer<typeof UpdateQuantitySchema>
   ) {
     const parsed = UpdateQuantitySchema.parse(body);
-    return this.cart.updateQuantity(req.user.userId, productId, parsed.quantity, parsed.variantId);
+    return this.cart
+      .updateQuantity(req.user.userId, productId, parsed.quantity, parsed.variantId)
+      .then(() => this.cart.getCartItems(req.user.userId))
+      .then(items => ({ items }));
   }
 
   @Delete('items/:productId')

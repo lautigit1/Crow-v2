@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../core/database.service.js';
@@ -9,6 +10,8 @@ export class AuthService {
   private refreshSecret: string;
   private accessTtl: string;
   private refreshTtl: string;
+  private rotationEnabled: boolean;
+  private activeRefresh: Map<string, Set<string>> = new Map(); // userId -> set of valid jti
 
   constructor(
     private readonly jwt: JwtService,
@@ -18,6 +21,7 @@ export class AuthService {
     this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     this.accessTtl = this.config.get<string>('ACCESS_TOKEN_TTL') ?? '900s';
     this.refreshTtl = this.config.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
+    this.rotationEnabled = (this.config.get<string>('REFRESH_ROTATION_ENABLED') ?? 'false') === 'true';
   }
 
   async register(dto: RegisterDto) {
@@ -29,7 +33,8 @@ export class AuthService {
       app_metadata: { role: 'authenticated' },
     });
     if (error || !data.user) throw new BadRequestException(error?.message ?? 'Cannot create user');
-    return this.issueTokens({ sub: data.user.id, email: data.user.email!, role: 'authenticated' });
+    const tokens = await this.issueTokens({ sub: data.user.id, email: data.user.email!, role: 'authenticated' });
+    return { user: { id: data.user.id, email: data.user.email! }, ...tokens };
   }
 
   async validateUser(email: string, password: string) {
@@ -57,8 +62,15 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     try {
-      const payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, { secret: this.refreshSecret });
-      
+      const payload = await this.jwt.verifyAsync<JwtPayload & { jti?: string }>(refreshToken, { secret: this.refreshSecret });
+      if (this.rotationEnabled) {
+        if (!payload.jti) throw new UnauthorizedException('Malformed refresh token');
+        const set = this.activeRefresh.get(payload.sub);
+        if (!set || !set.has(payload.jti)) throw new UnauthorizedException('Refresh token invalidated');
+        // Invalidate old token jti
+        set.delete(payload.jti);
+      }
+
       // Obtener el rol actualizado de la base de datos
       const { data: userData } = await this.db.adminClient
         .from('users')
@@ -76,7 +88,13 @@ export class AuthService {
 
   private async issueTokens(payload: JwtPayload) {
     const accessToken = await this.jwt.signAsync(payload, { expiresIn: this.accessTtl });
-    const refreshToken = await this.jwt.signAsync(payload, { secret: this.refreshSecret, expiresIn: this.refreshTtl });
+    const jti = randomUUID();
+    const refreshToken = await this.jwt.signAsync({ ...payload, jti }, { secret: this.refreshSecret, expiresIn: this.refreshTtl });
+    if (this.rotationEnabled) {
+      const set = this.activeRefresh.get(payload.sub) ?? new Set<string>();
+      set.add(jti);
+      this.activeRefresh.set(payload.sub, set);
+    }
     return { accessToken, refreshToken };
   }
 }

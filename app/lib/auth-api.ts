@@ -23,7 +23,7 @@ type Tokens = { accessToken: string; refreshToken: string };
 const TOKENS_KEY = 'authTokens';
 const SESSION_KEY = 'currentUser';
 
-function getTokens(): Tokens | null {
+export function getTokens(): Tokens | null {
   try {
     const raw = localStorage.getItem(TOKENS_KEY);
     return raw ? (JSON.parse(raw) as Tokens) : null;

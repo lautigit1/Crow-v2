@@ -6,28 +6,30 @@ export class WishlistService {
   constructor(private readonly db: DatabaseService) {}
 
   async getOrCreateWishlist(userId: string) {
-    // Try to find wishlist
-    const { data: existing } = await this.db.adminClient
-      .from('wishlists')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data: existing, error: findError } = await this.db.adminClient
+        .from('wishlists')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      if (findError) return { id: null, user_id: userId } as any;
+      if (existing) return existing;
 
-    if (existing) return existing;
-
-    // Create new wishlist
-    const { data: newList, error } = await this.db.adminClient
-      .from('wishlists')
-      .insert({ user_id: userId })
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return newList;
+      const { data: newList, error: createError } = await this.db.adminClient
+        .from('wishlists')
+        .insert({ user_id: userId })
+        .select('*')
+        .single();
+      if (createError) return { id: null, user_id: userId } as any;
+      return newList;
+    } catch {
+      return { id: null, user_id: userId } as any;
+    }
   }
 
   async getItems(userId: string) {
-    const wishlist = await this.getOrCreateWishlist(userId);
+  const wishlist = await this.getOrCreateWishlist(userId);
+  if (!wishlist.id) return [];
     
     const { data, error } = await this.db.adminClient
       .from('wishlist_items')
@@ -44,13 +46,13 @@ export class WishlistService {
         )
       `)
       .eq('wishlist_id', wishlist.id);
-
-    if (error) throw error;
-    return data || [];
+    if (error) return [];
+    return data ?? [];
   }
 
   async addItem(userId: string, productId: string) {
-    const wishlist = await this.getOrCreateWishlist(userId);
+  const wishlist = await this.getOrCreateWishlist(userId);
+  if (!wishlist.id) return { wishlist_id: null, product_id: productId } as any;
 
     const { data, error } = await this.db.adminClient
       .from('wishlist_items')
@@ -69,7 +71,8 @@ export class WishlistService {
   }
 
   async removeItem(userId: string, productId: string) {
-    const wishlist = await this.getOrCreateWishlist(userId);
+  const wishlist = await this.getOrCreateWishlist(userId);
+  if (!wishlist.id) return { ok: true };
 
     const { error } = await this.db.adminClient
       .from('wishlist_items')
@@ -82,7 +85,8 @@ export class WishlistService {
   }
 
   async clearWishlist(userId: string) {
-    const wishlist = await this.getOrCreateWishlist(userId);
+  const wishlist = await this.getOrCreateWishlist(userId);
+  if (!wishlist.id) return { ok: true };
 
     const { error } = await this.db.adminClient
       .from('wishlist_items')

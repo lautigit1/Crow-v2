@@ -17,18 +17,34 @@ export class UsersService {
   constructor(private readonly db: DatabaseService) {}
 
   async getMe(userId: string, token: string) {
-    // Use service role client to bypass RLS for reading user's own profile
-    const { data, error } = await this.db.adminClient.from('users_profiles').select('*').eq('id', userId).single();
-    if (error) throw error;
-    return data;
+    // Get email from auth user and merge with profile data
+    const { data: authUser, error: authErr } = await this.db.adminClient.auth.admin.getUserById(userId);
+    if (authErr || !authUser.user) throw authErr ?? new NotFoundException('User not found');
+
+    const { data: profile } = await this.db.adminClient
+      .from('users_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    return {
+      id: userId,
+      email: authUser.user.email,
+      name: (profile as any)?.name ?? null,
+    };
   }
 
   async updateMe(userId: string, body: { name?: string }, token: string) {
     if (!body.name) return this.getMe(userId, token);
     // Use service role client to bypass RLS for updating user's own profile
-    const { data, error } = await this.db.adminClient.from('users_profiles').update({ name: body.name }).eq('id', userId).select('*').single();
+    const { error } = await this.db.adminClient
+      .from('users_profiles')
+      .update({ name: body.name })
+      .eq('id', userId)
+      .select('*')
+      .single();
     if (error) throw error;
-    return data;
+    return this.getMe(userId, token);
   }
 
   async listAddresses(userId: string, token: string) {

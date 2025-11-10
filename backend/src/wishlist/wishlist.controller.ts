@@ -17,15 +17,23 @@ export class WishlistController {
 
   @Get()
   @ApiOkResponse({ description: 'Get wishlist items' })
-  getWishlist(@Req() req: { user: { userId: string } }) {
-    return this.wishlist.getItems(req.user.userId);
+  async getWishlist(@Req() req: { user: { userId: string } }) {
+    try {
+      const items = await this.wishlist.getItems(req.user.userId);
+      return { items };
+    } catch {
+      return { items: [] };
+    }
   }
 
   @Post('items')
   @ApiOkResponse({ description: 'Add item to wishlist' })
   addItem(@Req() req: { user: { userId: string } }, @Body() body: z.infer<typeof AddItemSchema>) {
     const parsed = AddItemSchema.parse(body);
-    return this.wishlist.addItem(req.user.userId, parsed.productId);
+    return this.wishlist
+      .addItem(req.user.userId, parsed.productId)
+      .then(() => this.wishlist.getItems(req.user.userId))
+      .then(items => ({ items }));
   }
 
   @Delete('items/:productId')

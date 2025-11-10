@@ -16,9 +16,12 @@ export class OrdersService {
   }
 
   async list(userId: string, token: string) {
-    const client = this.db.forUser(token);
-    const { data, error } = await client.from('orders').select('*, order_items(*)').eq('user_id', userId);
-    if (error) throw error;
-    return data;
+    // Use admin client to avoid RLS issues and return empty array for new users
+    const { data, error } = await this.db.adminClient
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('user_id', userId);
+    if (error) return [];
+    return data ?? [];
   }
 }

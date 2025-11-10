@@ -11,6 +11,11 @@ export const EnvSchema = z.object({
   REFRESH_TOKEN_TTL: z.string().default('7d'),
   PORT: z.string().optional(),
   CORS_ORIGIN: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
+  RATE_LIMIT_TTL: z.string().default('60'),
+  RATE_LIMIT_LIMIT: z.string().default('100'),
+  REFRESH_ROTATION_ENABLED: z.enum(['true','false']).default('false'),
+  NODE_ENV: z.enum(['development','test','production']).optional(),
   E2E_REAL: z.enum(['true','false']).default('false'),
 });
 

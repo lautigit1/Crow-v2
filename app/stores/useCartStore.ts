@@ -2,16 +2,37 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product, CartItem } from '../types/product';
+import * as cartApi from '../lib/cart-api';
+import { getTokens } from '../lib/auth-api';
+
+// Helper para mapear items del carrito del backend al formato local
+function mapCartItem(item: cartApi.CartItem): CartItem {
+  return {
+    product: {
+      id: String(item.product!.id),
+      nombre: item.product!.name,
+      precio: item.product!.price,
+      imagenUrl: item.product!.image_url,
+      stock: item.product!.stock,
+      marca: '',
+      modeloCompatible: '',
+      descripcionCorta: '',
+    },
+    quantity: item.quantity,
+  };
+}
 
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  isLoading: boolean;
   
   // Actions
-  addToCart: (product: Product, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  loadCart: () => Promise<void>;
+  addToCart: (product: Product, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -27,50 +48,149 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-      
-      addToCart: (product: Product, quantity: number) => {
-        set((state) => {
-          const existingItem = state.items.find(item => item.product.id === product.id);
-          
-          if (existingItem) {
-            return {
-              items: state.items.map(item => 
-                item.product.id === product.id 
-                  ? { ...item, quantity: item.quantity + quantity }
-                  : item
-              )
-            };
-          } else {
-            return {
-              items: [...state.items, { product, quantity }]
-            };
-          }
-        });
-      },
-      
-      removeFromCart: (productId: string) => {
-        set((state) => ({
-          items: state.items.filter(item => item.product.id !== productId)
-        }));
-      },
-      
-      updateQuantity: (productId: string, quantity: number) => {
-        if (quantity <= 0) {
-          get().removeFromCart(productId);
+      isLoading: false,
+
+      loadCart: async () => {
+        const token = getTokens()?.accessToken;
+        if (!token) {
+          set({ items: [] });
           return;
         }
-        
-        set((state) => ({
-          items: state.items.map(item => 
-            item.product.id === productId 
-              ? { ...item, quantity }
-              : item
-          )
-        }));
+
+        try {
+          set({ isLoading: true });
+          const cart = await cartApi.getCart(token);
+          set({ 
+            items: cart.items.map(mapCartItem)
+          });
+        } catch (error) {
+          console.error('Error loading cart:', error);
+        } finally {
+          set({ isLoading: false });
+        }
       },
       
-      clearCart: () => {
-        set({ items: [] });
+      addToCart: async (product: Product, quantity: number) => {
+        const token = getTokens()?.accessToken;
+        
+        // Si no hay token, usar carrito local
+        if (!token) {
+          set((state) => {
+            const existingItem = state.items.find(item => item.product.id === product.id);
+            
+            if (existingItem) {
+              return {
+                items: state.items.map(item => 
+                  item.product.id === product.id 
+                    ? { ...item, quantity: item.quantity + quantity }
+                    : item
+                )
+              };
+            } else {
+              return {
+                items: [...state.items, { product, quantity }]
+              };
+            }
+          });
+          return;
+        }
+
+        // Usar backend
+        try {
+          set({ isLoading: true });
+          const cart = await cartApi.addToCart(token, Number(product.id), quantity);
+          set({ 
+            items: cart.items.map(mapCartItem)
+          });
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      removeFromCart: async (productId: string) => {
+        const token = getTokens()?.accessToken;
+        
+        // Si no hay token, usar carrito local
+        if (!token) {
+          set((state) => ({
+            items: state.items.filter(item => item.product.id !== productId)
+          }));
+          return;
+        }
+
+        // Usar backend
+        try {
+          set({ isLoading: true });
+          const cart = await cartApi.removeFromCart(token, Number(productId));
+          set({ 
+            items: cart.items.map(mapCartItem)
+          });
+        } catch (error) {
+          console.error('Error removing from cart:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      updateQuantity: async (productId: string, quantity: number) => {
+        if (quantity <= 0) {
+          await get().removeFromCart(productId);
+          return;
+        }
+
+        const token = getTokens()?.accessToken;
+        
+        // Si no hay token, usar carrito local
+        if (!token) {
+          set((state) => ({
+            items: state.items.map(item => 
+              item.product.id === productId 
+                ? { ...item, quantity }
+                : item
+            )
+          }));
+          return;
+        }
+
+        // Usar backend
+        try {
+          set({ isLoading: true });
+          const cart = await cartApi.updateCartItem(token, Number(productId), quantity);
+          set({ 
+            items: cart.items.map(mapCartItem)
+          });
+        } catch (error) {
+          console.error('Error updating cart:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      clearCart: async () => {
+        const token = getTokens()?.accessToken;
+        
+        // Si no hay token, limpiar local
+        if (!token) {
+          set({ items: [] });
+          return;
+        }
+
+        // Usar backend
+        try {
+          set({ isLoading: true });
+          await cartApi.clearCart(token);
+          set({ items: [] });
+        } catch (error) {
+          console.error('Error clearing cart:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
       },
       
       toggleCart: () => {

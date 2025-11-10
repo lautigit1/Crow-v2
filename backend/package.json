@@ -18,7 +18,8 @@
     "make-admin": "ts-node scripts/make-admin.ts"
   },
   "dependencies": {
-    "@nestjs/swagger": "^7.3.1",
+  "@nestjs/swagger": "^7.3.1",
+  "@nestjs/throttler": "^5.2.0",
     "swagger-ui-express": "^5.0.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.0.0",
@@ -31,6 +32,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
+    "helmet": "^7.1.0",
     "supabase": "^2.43.5",
     "zod": "^3.22.4"
   },
