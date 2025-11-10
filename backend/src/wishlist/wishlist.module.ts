@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { WishlistController } from './wishlist.controller.js';
+import { WishlistService } from './wishlist.service.js';
+import { CoreModule } from '../core/core.module.js';
+
+@Module({
+  imports: [CoreModule],
+  controllers: [WishlistController],
+  providers: [WishlistService],
+})
+export class WishlistModule {}

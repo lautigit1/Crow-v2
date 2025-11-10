@@ -1,0 +1,30 @@
+name: Deploy Supabase Migrations
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-migrations:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        working-directory: backend
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Apply migrations to remote
+        working-directory: backend
+        run: supabase migration up --db-url "$SUPABASE_DB_URL"

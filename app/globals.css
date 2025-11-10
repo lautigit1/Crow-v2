@@ -1,0 +1,121 @@
+/* app/globals.css */
+
+@import "tailwindcss";
+
+.text-reveal-container {
+  line-height: 1.1; /* Ajusta el interlineado si es necesario */
+  overflow: hidden; /* La magia está acá: esconde las letras antes de que suban */
+}
+
+/* Estilos para el slider de precio */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #00BFFF;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #00BFFF;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+/* Glow suave para el logo en azul eléctrico */
+@keyframes logo-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 191, 255, 0.25)); }
+  50% { filter: drop-shadow(0 0 16px rgba(0, 191, 255, 0.5)); }
+}
+
+.logo-glow {
+  animation: logo-glow 3s ease-in-out infinite;
+  will-change: filter;
+}
+
+/* Glow reutilizable para títulos con azul eléctrico */
+@keyframes electric-glow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(0,191,255,0.28)) drop-shadow(0 0 22px rgba(0,191,255,0.18)); }
+  50% { filter: drop-shadow(0 0 16px rgba(0,191,255,0.45)) drop-shadow(0 0 30px rgba(0,191,255,0.25)); }
+}
+
+.electric-glow {
+  animation: electric-glow 3.2s ease-in-out infinite;
+  will-change: filter;
+}
+
+/* Fuerza color azul eléctrico en texto (para el logo) */
+.logo-electric {
+  color: #00BFFF !important;
+  text-shadow: 0 0 8px rgba(0, 191, 255, 0.35), 0 0 18px rgba(0, 191, 255, 0.22);
+}
+
+/* Sutil textura de ruido para dar profundidad al fondo */
+.bg-noise {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.25'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* Animación de gradiente para textos */
+@keyframes gradient-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient-flow 8s ease-in-out infinite;
+  background-size: 200% auto;
+}
+
+/* Efecto glassmorphism para cards y containers */
+.glass-effect {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 191, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.08);
+}
+
+/* Hover suave para elementos interactivos */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 191, 255, 0.15);
+}
+
+/* Efecto de brillo en bordes */
+@keyframes border-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 191, 255, 0.2), 0 0 20px rgba(0, 191, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(0, 191, 255, 0.4), 0 0 40px rgba(0, 191, 255, 0.2); }
+}
+
+.border-glow {
+  animation: border-glow 3s ease-in-out infinite;
+}
+
+/* Smooth scrolling para toda la página */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimización de rendimiento para animaciones */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
