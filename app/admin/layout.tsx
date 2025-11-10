@@ -151,7 +151,7 @@ export default function AdminLayout({
                 href="/"
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                <span className="text-xl">�</span>
+                <span className="text-xl">🏬</span>
                 Volver a la Tienda
               </Link>
             </div>

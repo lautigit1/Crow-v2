@@ -20,24 +20,21 @@ export class ProductsService {
     return data;
   }
 
-  async create(body: CreateProductInput, token: string) {
-    const client = token ? this.db.forUser(token) : this.db.adminClient;
-    const { data, error } = await client.from('products').insert(body).select('*').single();
+  async create(body: CreateProductInput) {
+    const { data, error } = await this.db.adminClient.from('products').insert(body).select('*').single();
     if (error) throw error;
     return data;
   }
 
-  async update(id: string, body: UpdateProductInput, token: string) {
-    const client = token ? this.db.forUser(token) : this.db.adminClient;
-    const { data, error } = await client.from('products').update(body).eq('id', id).select('*').single();
+  async update(id: string, body: UpdateProductInput) {
+    const { data, error } = await this.db.adminClient.from('products').update(body).eq('id', id).select('*').single();
     if (error) throw error;
     return data;
   }
 
-  async remove(id: string, token: string) {
-    const client = token ? this.db.forUser(token) : this.db.adminClient;
-    const { error } = await client.from('products').delete().eq('id', id);
+  async remove(id: string): Promise<void> {
+    const { error } = await this.db.adminClient.from('products').delete().eq('id', id);
     if (error) throw error;
-    return { ok: true };
+    return;
   }
 }

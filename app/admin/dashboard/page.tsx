@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getStats, getAllProductsAdmin } from '../../lib/admin-api';
+import { getStats, getAllProductsAdmin, purgeTestUsers, promoteUsersByIdentifiers } from '../../lib/admin-api';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     // Solo cargar datos si hay usuario autenticado
@@ -56,6 +57,36 @@ export default function AdminDashboard() {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePurgeTests = async () => {
+    if (!confirm('¿Eliminar todos los usuarios de prueba? (emails que contienen test, demo, dummy, example, prueba)')) return;
+    setActionLoading(true);
+    try {
+      const res = await purgeTestUsers();
+      await loadData();
+      alert(res?.deleted?.length ? `Eliminados ${res.deleted.length} usuarios de prueba.` : 'No se encontraron usuarios de prueba.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al purgar usuarios de prueba';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePromoteLautaro = async () => {
+    if (!confirm('¿Promocionar a admin todos los usuarios que coincidan con "lautaro" o "salinas"?')) return;
+    setActionLoading(true);
+    try {
+      const res = await promoteUsersByIdentifiers(['lautaro','salinas']);
+      await loadData();
+      alert(res?.promoted?.length ? `Promocionados ${res.promoted.length} usuarios a admin.` : 'No se encontraron usuarios para promocionar.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al promocionar usuarios';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -172,7 +203,7 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Acciones Rápidas</h2>
         </div>
-        <div className="p-6">
+        <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/admin/products"
@@ -217,6 +248,10 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-600">Ajustes generales</p>
               </div>
             </Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handlePurgeTests} disabled={actionLoading} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">🧹 Purgar Test Users</button>
+            <button onClick={handlePromoteLautaro} disabled={actionLoading} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">👑 Promocionar &quot;Lautaro Salinas&quot;</button>
           </div>
         </div>
       </div>

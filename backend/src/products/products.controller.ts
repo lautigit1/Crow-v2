@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Post, Body, Patch, Delete, UseGuards, HttpCode, Req } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body, Patch, Delete, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOkResponse, ApiCreatedResponse, ApiNoContentResponse, ApiUnauthorizedResponse, ApiForbiddenResponse } from '@nestjs/swagger';
 import { ProductsService } from './products.service.js';
 import { Roles, RolesGuard } from '../common/guards/roles.guard.js';
@@ -30,10 +30,9 @@ export class ProductsController {
   @ApiForbiddenResponse({ description: 'Forbidden: insufficient role' })
   @Roles('admin')
   @Post()
-  create(@Req() req: { headers: Record<string,string> }, @Body() body: CreateProductInput) {
+  create(@Body() body: CreateProductInput) {
     const parsed = CreateProductSchema.parse(body);
-    const token = this.extractToken(req.headers);
-    return this.products.create(parsed, token);
+    return this.products.create(parsed);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -43,10 +42,9 @@ export class ProductsController {
   @ApiForbiddenResponse({ description: 'Forbidden: insufficient role' })
   @Roles('admin')
   @Patch(':id')
-  update(@Req() req: { headers: Record<string,string> }, @Param('id') id: string, @Body() body: UpdateProductInput) {
+  update(@Param('id') id: string, @Body() body: UpdateProductInput) {
     const parsed = UpdateProductSchema.parse(body);
-    const token = this.extractToken(req.headers);
-    return this.products.update(id, parsed, token);
+    return this.products.update(id, parsed);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -57,14 +55,8 @@ export class ProductsController {
   @Roles('admin')
   @Delete(':id')
   @HttpCode(204)
-  remove(@Req() req: { headers: Record<string,string> }, @Param('id') id: string) {
-    const token = this.extractToken(req.headers);
-    this.products.remove(id, token);
+  remove(@Param('id') id: string) {
+    this.products.remove(id);
     return;
-  }
-
-  private extractToken(headers: Record<string,string>): string {
-    const raw = headers['authorization'] ?? '';
-    return raw.replace('Bearer ', '');
   }
 }

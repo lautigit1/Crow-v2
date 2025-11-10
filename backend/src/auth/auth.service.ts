@@ -46,11 +46,11 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto.email, dto.password);
     
-    // Obtener el rol de la tabla users, no de app_metadata
+    // Obtener el rol de la tabla users_profiles
     const { data: userData, error: userError } = await this.db.adminClient
-      .from('users')
+      .from('users_profiles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single();
     
     const role = userData?.role ?? 'authenticated';
@@ -73,9 +73,9 @@ export class AuthService {
 
       // Obtener el rol actualizado de la base de datos
       const { data: userData } = await this.db.adminClient
-        .from('users')
+        .from('users_profiles')
         .select('role')
-        .eq('user_id', payload.sub)
+        .eq('id', payload.sub)
         .single();
       
       const role = userData?.role ?? payload.role ?? 'authenticated';

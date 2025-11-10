@@ -77,6 +77,22 @@ export async function disableUser(id: string) {
   return { ok: true };
 }
 
+export async function purgeTestUsers(patterns?: string[]) {
+  const res = await fetchWithAuth(`${API_URL}/users/purge-test-users`, {
+    method: 'POST',
+    body: JSON.stringify({ patterns }),
+  });
+  return res.json();
+}
+
+export async function promoteUsersByIdentifiers(identifiers: string[]) {
+  const res = await fetchWithAuth(`${API_URL}/users/promote`, {
+    method: 'POST',
+    body: JSON.stringify({ identifiers }),
+  });
+  return res.json();
+}
+
 // ============================================
 // PRODUCTS MANAGEMENT
 // ============================================
@@ -155,12 +171,17 @@ interface Order {
 }
 
 export async function getStats() {
+  // Preferir endpoint dedicado si existe
+  try {
+    const res = await fetchWithAuth(`${API_URL}/users/stats`);
+    if (res.ok) return res.json();
+  } catch {}
+  // Fallback: calcular en el cliente
   const [users, products, orders] = await Promise.all([
     getAllUsers() as Promise<User[]>,
     getAllProductsAdmin() as Promise<Product[]>,
-    getAllOrders().catch(() => []) as Promise<Order[]>, // Por si no está implementado aún
+    getAllOrders().catch(() => []) as Promise<Order[]>,
   ]);
-
   return {
     totalUsers: users.length,
     totalProducts: products.length,

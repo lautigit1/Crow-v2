@@ -111,6 +111,35 @@ export class UsersController {
     return;
   }
 
+  @Post('purge-test-users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOkResponse({ description: 'Deleted test users' })
+  purgeTestUsers(
+    @Body() body: { patterns?: string[] },
+  ) {
+    return this.users.purgeTestUsers(body?.patterns);
+  }
+
+  @Post('promote')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOkResponse({ description: 'Promoted matching users to admin' })
+  promoteMatching(
+    @Body() body: { identifiers: string[] }
+  ) {
+    const parsed = z.object({ identifiers: z.array(z.string().min(1)).min(1) }).parse(body);
+    return this.users.promoteMatchingUsers(parsed.identifiers);
+  }
+
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOkResponse({ description: 'Admin stats' })
+  getStats() {
+    return this.users.getAdminStats();
+  }
+
   private extractToken(headers: Record<string,string>): string {
     const raw = headers['authorization'] ?? '';
     return raw.replace('Bearer ', '');

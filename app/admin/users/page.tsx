@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAllUsers, updateUserRole, disableUser } from '../../lib/admin-api';
+import { getAllUsers, updateUserRole, disableUser, purgeTestUsers, promoteUsersByIdentifiers } from '../../lib/admin-api';
 import { useAuthStore } from '../../stores/useAuthStore';
 import type { User } from '../../types/auth';
 
@@ -11,6 +11,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'authenticated' | 'admin'>('all');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     // Solo cargar datos si hay usuario autenticado
@@ -60,6 +61,44 @@ export default function UsersPage() {
     }
   };
 
+  const handlePurgeTests = async () => {
+    if (!confirm('¿Eliminar todos los usuarios de prueba? (emails que contienen test, demo, dummy, example, prueba)')) return;
+    setActionLoading(true);
+    try {
+      const res = await purgeTestUsers();
+      if (res?.deleted?.length) {
+        setUsers(users.filter(u => !res.deleted.includes(u.id)));
+        alert(`Eliminados ${res.deleted.length} usuarios de prueba.`);
+      } else {
+        alert('No se encontraron usuarios de prueba para eliminar.');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al purgar usuarios de prueba';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePromoteLautaro = async () => {
+    if (!confirm('¿Promocionar a admin todos los usuarios que coincidan con "lautaro" o "salinas"?')) return;
+    setActionLoading(true);
+    try {
+      const res = await promoteUsersByIdentifiers(['lautaro','salinas']);
+      if (res?.promoted?.length) {
+        setUsers(users.map(u => res.promoted.includes(u.id) ? { ...u, role: 'admin' } : u));
+        alert(`Promocionados ${res.promoted.length} usuarios a admin.`);
+      } else {
+        alert('No se encontraron usuarios para promocionar.');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al promocionar usuarios';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,20 +119,37 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
           <p className="text-gray-600 mt-2">{filteredUsers.length} usuarios encontrados</p>
         </div>
-        <button
-          onClick={loadUsers}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Actualizar
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={loadUsers}
+            disabled={actionLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Actualizar
+          </button>
+          <button
+            onClick={handlePurgeTests}
+            disabled={actionLoading}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            🧹 Purgar Test
+          </button>
+          <button
+            onClick={handlePromoteLautaro}
+            disabled={actionLoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            👑 Promocionar Lautaro
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
